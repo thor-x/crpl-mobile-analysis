@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>crpl-mobile-analysis</title>
+  <style>
+    body { margin: 0 auto; padding: 0; width: 80%; }
+    .ifr { width: 100%; height: 100%; margin-top: 10px; }
+    .code { color: #C9214B; background-color: #F2DDDD; border-radius: 5px; padding: 2px 5px; }
+  </style>
+</head>
+<body>
+  <h2>crpl-mobile-analysis</h2>
+  <p>
+    The size and dependency analysis of
+    <span class="code">./dist/crpl-mobile.min.js</span>
+  </p>
+  <select id="versionlist"></select>
+  <iframe class="ifr" frameborder="0" sandbox="allow-forms allow-scripts allow-same-origin"></iframe>
+
+  <script>
+    var vlist = document.querySelector('#versionlist');
+    var ifr = document.querySelector('.ifr');
+    var selectedVersion = '';
+    // hash match `#crpl-mobile/versions/0.0.12`
+    // e.g. https://thor-x.github.io/crpl-mobile-analysis/#crpl-mobile/versions/0.0.12
+    if (location.hash && location.hash.indexOf('#crpl-mobile/versions/') === 0) {
+      selectedVersion = location.hash.split('/')[2];
+    }
+    // render select/option
+    ajax('./crpl-mobile-versions.json', function(res) {
+      var optsHtml = '';
+      var hashSel;
+      var verArr = JSON.parse(res).reverse();
+      verArr.forEach((ver, index) => {
+        hashSel = selectedVersion && ver === `${selectedVersion}-stats`;
+        optsHtml += hashSel ?
+          `<option value="${ver}" selected="selected">${ver}</option>` :
+          `<option value="${ver}">${ver}</option>`;
+      });
+      vlist.innerHTML = optsHtml;
+      renderIframe(hashSel ? `${selectedVersion}-stats` : verArr[0]);
+    });
+    // bind select event
+    vlist.addEventListener('change', evt => {
+      renderIframe(evt.target.value);
+    });
+    // change iframe's size
+    ifr.addEventListener('load', evt => {
+      var ifrm = evt.target;
+      var doc = ifrm.contentDocument? ifrm.contentDocument:
+        ifrm.contentWindow.document;
+      // In chrome61 `document.body.scrollXxx` is invalid, use `document.scrollingElement.scrollXxx`
+      const scrollNode = doc.scrollingElement ? doc.scrollingElement : doc.body;
+      ifrm.style.width = scrollNode.scrollWidth + 'px';
+      ifrm.style.height = scrollNode.scrollHeight + 'px';
+    });
+    function renderIframe(url) {
+      ifr.src = 'crpl-mobile@' + url + '.html';
+    }
+    function ajax(url, success) {
+      var xhr = new XMLHttpRequest();
+      xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 400) {
+          // Success!
+          success(xhr.responseText);
+        } else {
+          console.log('XMLHttpRequest error');
+        }
+      };
+      xhr.open("GET", url, true);
+      xhr.send();
+    }
+  </script>
+</body>
+</html>
